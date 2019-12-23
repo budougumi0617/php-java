@@ -85,19 +85,24 @@ class MethodAssembler extends AbstractAssembler
                     'deep_array' => substr_count($type, '[]'),
                 ];
 
-                $className = Formatter::buildSignature(
-                    $parameters[$documentParameter->getVariableName()]['type'],
-                    $parameters[$documentParameter->getVariableName()]['deep_array']
-                );
+                $definedType = $parameters[$documentParameter->getVariableName()]['type'];
+                $definedTypeDimensionsOfArray = $parameters[$documentParameter->getVariableName()]['deep_array'];
 
-                $this->getEnhancedConstantPool()
-                    ->addClass($className);
+                if (!\PHPJava\Kernel\Resolvers\TypeResolver::isPrimitive($definedType)) {
+                    $className = Formatter::buildSignature(
+                        $definedType,
+                        $definedTypeDimensionsOfArray
+                    );
+
+                    $this->getEnhancedConstantPool()
+                        ->addClass($className);
+                }
 
                 // Fill local storage number.
                 $this->assembleAssignVariable(
                     $documentParameter->getVariableName(),
-                    $parameters[$documentParameter->getVariableName()]['type'],
-                    $parameters[$documentParameter->getVariableName()]['deep_array']
+                    $definedType,
+                    $definedTypeDimensionsOfArray
                 );
             }
         }
@@ -109,7 +114,7 @@ class MethodAssembler extends AbstractAssembler
         foreach ($parameters as $keyName => $value) {
             if ($value === null) {
                 throw new AssembleStructureException(
-                    'Parameter length are mismatch.'
+                    'Parameter length are mismatch or $' . $keyName . ' is not defined parameter type.'
                 );
             }
 
@@ -148,12 +153,12 @@ class MethodAssembler extends AbstractAssembler
         }
 
         $method = (
-        new Method(
-            $methodAccessFlag->make(),
-            $this->getClassAssembler()->getClassName(),
-            $this->methodName,
-            $descriptor
-        )
+            new Method(
+                $methodAccessFlag->make(),
+                $this->getClassAssembler()->getClassName(),
+                $this->methodName,
+                $descriptor
+            )
         )
             ->setConstantPool($this->getConstantPool())
             ->setConstantPoolFinder($this->getConstantPoolFinder())
